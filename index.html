@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Petualangan Kepulauan RIASEC - Teori Karier Holland</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ocean-bg: #5ac8d8;
+      --ocean-deep: #3eb2c4;
+      --ink: #1e293b;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #4cc3d4;
+      color: var(--ink);
+      overflow-x: hidden;
+      user-select: none;
+    }
+
+    h1, h2, h3, .font-display {
+      font-family: 'Fredoka', sans-serif;
+    }
+
+    /* Animasi Ombak, Denyut Tombol & Elemen Peta */
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-6px); }
+    }
+
+    @keyframes waveShift {
+      0%, 100% { transform: translateX(0px); }
+      50% { transform: translateX(8px); }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8)); }
+      50% { filter: drop-shadow(0 0 20px rgba(250, 204, 21, 1)); }
+    }
+
+    @keyframes bounceShip {
+      0%, 100% { transform: translateY(0) rotate(-2deg); }
+      50% { transform: translateY(-5px) rotate(2deg); }
+    }
+
+    @keyframes btnPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    .island-group {
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .island-group:hover {
+      transform: scale(1.045);
+    }
+
+    .island-active {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+
+    .ship-bob {
+      animation: bounceShip 2.4s infinite ease-in-out;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .wave-anim {
+      animation: waveShift 4s infinite ease-in-out;
+    }
+
+    .pulse-cta {
+      animation: btnPulse 1.8s infinite ease-in-out;
+    }
+
+    /* Manajemen Overlay Modal agar tidak pernah memblokir klik saat tertutup */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(15, 23, 42, 0.68);
+      backdrop-filter: blur(4px);
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem;
+      overflow-y: auto;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.is-open {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Custom Scrollbar untuk Modal */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 999px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 999px;
+    }
+
+    /* Kartu Timbul Gaya Board Game */
+    .board-card {
+      border: 3px solid #1e293b;
+      box-shadow: 0 6px 0 #1e293b;
+    }
+
+    .board-btn {
+      border: 2.5px solid #1e293b;
+      box-shadow: 0 4px 0 #1e293b;
+      transition: all 0.12s ease;
+      cursor: pointer;
+    }
+
+    .board-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #1e293b;
+    }
+
+    .board-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1e293b;
+    }
+
+    /* Styling Khusus Cetak / Simpan PDF Laporan */
+    @media print {
+      body {
+        background: #ffffff !important;
+        overflow: visible !important;
+      }
+      header, main, #welcome-modal, #start-brief-modal, #island-modal, #confetti-canvas, .no-print {
+        display: none !important;
+      }
+      #result-modal {
+        position: static !important;
+        display: block !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        background: transparent !important;
+        padding: 0 !important;
+      }
+      #result-modal > div {
+        max-width: 100% !important;
+        max-height: none !important;
+        box-shadow: none !important;
+        border: 2px solid #1e293b !important;
+      }
+      #result-body-content {
+        overflow: visible !important;
+        max-height: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gradient-to-b from-[#67d5e6] via-[#53c4d6] to-[#3fb0c2]">
+
+  <!-- Canvas Konfeti untuk Perayaan Finish -->
+  <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- Header / HUD Navigasi Atas -->
+  <header class="w-full max-w-7xl mx-auto px-3 sm:px-6 pt-3 pb-2 z-20 relative">
+    <div class="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-2.5 board-card flex flex-wrap items-center justify-between gap-3">
+      <!-- Judul & Identitas Siswa -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-400 border-2 border-slate-800 flex items-center justify-center text-xl shadow-sm shrink-0">
+          🧭
+        </div>
+        <div>
+          <h1 class="text-base sm:text-xl font-bold text-slate-800 leading-tight">
+            Petualangan Kepulauan RIASEC
+          </h1>
+          <div class="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span id="hud-student-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-emerald-100 text-emerald-900 border border-slate-800">
+              👤 Kapten: Belum Diisi
+            </span>
+            <span id="hud-class-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-amber-100 text-amber-900 border border-slate-800">
+              🏫 Kelas: -
+            </span>
+            <span id="hud-progress-count" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] sm:text-xs font-bold bg-sky-100 text-sky-900 border border-slate-800">
+              🏝️ 0/6 Pulau
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Indikator Progres Pulau -->
+      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-1" id="progress-tracker" aria-label="Progres Pulau">
+        <!-- Diisi oleh JavaScript -->
+      </div>
+
+      <!-- Kontrol Mode, Audio & Reset -->
+      <div class="flex items-center gap-2">
+        <span id="mode-badge" class="hidden lg:inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-800 border-2 border-slate-800">
+          Mode: Eksplorasi & Kuis
+        </span>
+        <button type="button" id="btn-sound" title="Suara Efek" class="p-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-slate-800 board-btn text-sm font-bold" aria-label="Toggle Suara">
+          🔊
+        </button>
+        <button type="button" id="btn-home" title="Reset / Ganti Siswa" class="px-3 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-slate-800 board-btn text-xs sm:text-sm font-bold">
+          🔄 Ganti Siswa
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Area Utama Peta Kepulauan -->
+  <main class="flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 py-2 flex flex-col items-center justify-center relative z-10">
+    
+    <!-- Container Peta Responsif -->
+    <div id="map-wrapper" class="w-full bg-[#5ecce0] rounded-3xl board-card overflow-hidden relative shadow-2xl">
+      
+      <!-- Banner Petunjuk Aksi di Atas Peta -->
+      <div class="bg-amber-50/95 border-b-2 border-slate-800 px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 border border-slate-800 animate-ping shrink-0"></span>
+          <p id="status-instruction" class="text-xs sm:text-sm font-semibold text-slate-800">
+            Selamat datang Kapten! Kapal bersandar di Pulau START. Klik "Mulai Berlayar ke Pulau R".
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-next-action" onclick="window.handlePrimaryBannerAction()" class="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-display font-bold text-xs sm:text-sm board-btn pulse-cta">
+            ⛵ Mulai Berlayar ke Pulau R
+          </button>
+        </div>
+      </div>
+
+      <!-- SVG Peta Kepulauan RIASEC 16:9 (8 Pulau + Dekorasi Laut + Kapal Pemain) -->
+      <div class="w-full overflow-x-auto">
+        <svg id="island-map-svg" viewBox="0 0 1200 675" class="w-full h-auto min-w-[760px] block" role="img" aria-label="Peta Kepulauan Teori Karier Holland RIASEC">
+          <defs>
+            <!-- Pola Tekstur Air Laut -->
+            <pattern id="sea-pattern" width="120" height="120" patternUnits="userSpaceOnUse">
+              <rect width="120" height="120" fill="#5ecce0" />
+              <path d="M15 30 Q22 24 30 30 T45 30" fill="none" stroke="#3aa8bd" stroke-width="2.2" stroke-linecap="round" opacity="0.55" />
+              <path d="M75 85 Q82 79 90 85 T105 85" fill="none" stroke="#3aa8bd" stroke-width="2.2" stroke-linecap="round" opacity="0.55" />
+            </pattern>
+
+            <!-- Gradien Medali Emas -->
+            <linearGradient id="coin-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fde047" />
+              <stop offset="50%" stop-color="#facc15" />
+              <stop offset="100%" stop-color="#eab308" />
+            </linearGradient>
+
+            <!-- Drop Shadow Pulau -->
+            <filter id="island-shadow" x="-10%" y="-10%" width="125%" height="125%">
+              <feDropShadow dx="0" dy="8" stdDeviation="4" flood-color="#1e4e5f" flood-opacity="0.35" />
+            </filter>
+          </defs>
+
+          <!-- Latar Laut Bersih Tanpa Garis Titik-Titik -->
+          <rect width="1200" height="675" fill="url(#sea-pattern)" />
+
+          <!-- Dekorasi Laut: Ombak Kecil, Sirip Hiu, Terumbu Karang, Perahu Layar, Pegunungan -->
+          <g class="wave-anim" opacity="0.78">
+            <path d="M360 68 Q370 60 380 68 T400 68" fill="none" stroke="#2c8fa3" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M770 62 Q780 54 790 62 T810 62" fill="none" stroke="#2c8fa3" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M430 338 Q440 330 450 338 T470 338" fill="none" stroke="#2c8fa3" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M780 348 Q790 340 800 348 T820 348" fill="none" stroke="#2c8fa3" stroke-width="2.5" stroke-linecap="round" />
+            <path d="M370 610 Q380 602 390 610 T410 610" fill="none" stroke="#2c8fa3" stroke-width="2.5" stroke-linecap="round" />
+            <!-- Sirip Hiu Lucu -->
+            <g transform="translate(835, 35)">
+              <path d="M 4 20 Q 14 4 22 6 Q 18 14 24 20 Z" fill="#64748b" stroke="#1e293b" stroke-width="2" />
+              <path d="M 0 21 Q 14 18 28 21" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" />
+            </g>
+          </g>
+
+          <!-- Pulau Kecil Dekoratif di Tengah -->
+          <g transform="translate(765, 312)">
+            <ellipse cx="35" cy="36" rx="34" ry="14" fill="#a16207" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="35" cy="31" rx="32" ry="12" fill="#fde047" stroke="#1e293b" stroke-width="2.5" />
+            <polygon points="15,28 28,6 41,28" fill="#64748b" stroke="#1e293b" stroke-width="2.2" />
+            <polygon points="28,6 23,15 33,15" fill="#ffffff" stroke="#1e293b" stroke-width="1.5" />
+            <polygon points="34,29 46,9 58,29" fill="#475569" stroke="#1e293b" stroke-width="2.2" />
+            <polygon points="46,9 41,17 51,17" fill="#ffffff" stroke="#1e293b" stroke-width="1.5" />
+            <circle cx="24" cy="24" r="5" fill="#22c55e" stroke="#1e293b" stroke-width="2" />
+          </g>
+
+          <!-- Karang & Kerang Dekoratif -->
+          <g transform="translate(45, 328)">
+            <ellipse cx="22" cy="35" rx="16" ry="6" fill="#fde047" stroke="#1e293b" stroke-width="2" />
+            <path d="M18 33 L12 16 M22 33 L22 12 M26 33 L32 18" stroke="#f43f5e" stroke-width="5" stroke-linecap="round" />
+            <path d="M18 33 L12 16 M22 33 L22 12 M26 33 L32 18" stroke="#1e293b" stroke-width="1.5" stroke-linecap="round" fill="none" />
+          </g>
+          <g transform="translate(38, 592)">
+            <path d="M12 35 L6 16 M18 35 L18 12 M24 35 L30 18" stroke="#fb7185" stroke-width="5" stroke-linecap="round" />
+            <circle cx="48" cy="32" r="9" fill="#f9a8d4" stroke="#1e293b" stroke-width="2" />
+          </g>
+          <!-- Pegunungan Latar Sudut Kanan Atas -->
+          <g transform="translate(1090, 22)">
+            <polygon points="10,45 30,10 50,45" fill="#64748b" stroke="#1e293b" stroke-width="2.5" />
+            <polygon points="30,10 22,24 38,24" fill="#f8fafc" stroke="#1e293b" stroke-width="2" />
+            <polygon points="38,48 56,16 74,48" fill="#475569" stroke="#1e293b" stroke-width="2.5" />
+            <polygon points="56,16 49,28 63,28" fill="#f8fafc" stroke="#1e293b" stroke-width="2" />
+          </g>
+
+          <!-- Perahu Layar Hiasan Latar -->
+          <g transform="translate(415, 32)" opacity="0.88">
+            <polygon points="22,4 22,26 8,26" fill="#ffffff" stroke="#1e293b" stroke-width="2" />
+            <polygon points="25,8 25,26 37,26" fill="#fed7aa" stroke="#1e293b" stroke-width="2" />
+            <polygon points="4,28 40,28 34,36 10,36" fill="#ea580c" stroke="#1e293b" stroke-width="2" />
+          </g>
+          <g transform="translate(825, 596)" opacity="0.88">
+            <polygon points="22,4 22,26 8,26" fill="#ffffff" stroke="#1e293b" stroke-width="2" />
+            <polygon points="25,8 25,26 37,26" fill="#bae6fd" stroke="#1e293b" stroke-width="2" />
+            <polygon points="4,28 40,28 34,36 10,36" fill="#dc2626" stroke="#1e293b" stroke-width="2" />
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 0: START (Sudut Kiri Atas - Mercusuar & Dermaga)     -->
+          <!-- ========================================================= -->
+          <g id="island-0" class="island-group" data-step="0" onclick="window.handleIslandClick(0)" transform="translate(18, 16)" filter="url(#island-shadow)">
+            <!-- Buih air -->
+            <ellipse cx="86" cy="102" rx="78" ry="48" fill="#a5f3fc" opacity="0.7" />
+            <!-- Tebing tanah -->
+            <path d="M 16 90 C 13 128, 159 128, 156 90 L 156 76 L 16 76 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <!-- Daratan hijau & pasir -->
+            <ellipse cx="86" cy="76" rx="70" ry="36" fill="#86efac" stroke="#1e293b" stroke-width="3" />
+            <ellipse cx="96" cy="84" rx="46" ry="20" fill="#fde047" stroke="#1e293b" stroke-width="2.2" />
+            
+            <!-- Dermaga Kayu -->
+            <g transform="translate(108, 86) rotate(18)">
+              <rect x="0" y="0" width="40" height="16" rx="2" fill="#b45309" stroke="#1e293b" stroke-width="2.2" />
+              <line x1="10" y1="0" x2="10" y2="16" stroke="#1e293b" stroke-width="2" />
+              <line x1="20" y1="0" x2="20" y2="16" stroke="#1e293b" stroke-width="2" />
+              <line x1="30" y1="0" x2="30" y2="16" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Mercusuar Merah-Putih -->
+            <g transform="translate(36, 12)">
+              <polygon points="10,54 15,18 29,18 34,54" fill="#ffffff" stroke="#1e293b" stroke-width="2.5" />
+              <polygon points="12,42 32,42 30,32 14,32" fill="#ef4444" stroke="#1e293b" stroke-width="2" />
+              <polygon points="14,24 30,24 29,18 15,18" fill="#ef4444" stroke="#1e293b" stroke-width="2" />
+              <rect x="13" y="10" width="18" height="8" rx="1" fill="#fef08a" stroke="#1e293b" stroke-width="2" />
+              <polygon points="11,10 22,2 33,10" fill="#dc2626" stroke="#1e293b" stroke-width="2.2" />
+            </g>
+
+            <!-- Papan Penunjuk Arah -->
+            <g transform="translate(76, 34)">
+              <rect x="6" y="0" width="4" height="26" fill="#78350f" stroke="#1e293b" stroke-width="1.8" />
+              <polygon points="0,4 16,4 20,8 16,12 0,12" fill="#fb923c" stroke="#1e293b" stroke-width="1.8" />
+              <polygon points="16,14 2,14 -2,18 2,22 16,22" fill="#facc15" stroke="#1e293b" stroke-width="1.8" />
+            </g>
+
+            <!-- Plakat START -->
+            <rect x="44" y="76" width="80" height="22" rx="11" fill="#ffffff" stroke="#1e293b" stroke-width="2.5" />
+            <text x="84" y="92" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="13" fill="#1e293b">START</text>
+
+            <!-- Tombol Aksi Langsung "Mulai Berlayar" di Pulau START -->
+            <g id="svg-start-cta" class="pulse-cta">
+              <rect x="18" y="106" width="136" height="28" rx="14" fill="#facc15" stroke="#1e293b" stroke-width="2.6" />
+              <text x="86" y="125" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="13" fill="#1e293b">⛵ Mulai Berlayar</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 1: R - REALISTIC (Bengkel, Roda Gigi, Alat Teknik)  -->
+          <!-- ========================================================= -->
+          <g id="island-1" class="island-group" data-step="1" onclick="window.handleIslandClick(1)" transform="translate(158, 65)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="138" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 122 C 18 182, 252 182, 248 122 L 248 106 L 22 106 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <path d="M 24 114 C 22 168, 248 168, 246 114 Z" fill="#fde68a" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="135" cy="105" rx="114" ry="58" fill="#14b8a6" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Roda Gigi Besar -->
+            <g transform="translate(72, 16)">
+              <circle cx="32" cy="32" r="24" fill="#94a3b8" stroke="#1e293b" stroke-width="3" />
+              <circle cx="32" cy="32" r="10" fill="#14b8a6" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="28" y="2" width="8" height="8" fill="#94a3b8" stroke="#1e293b" stroke-width="2" />
+              <rect x="28" y="54" width="8" height="8" fill="#94a3b8" stroke="#1e293b" stroke-width="2" />
+              <rect x="2" y="28" width="8" height="8" fill="#94a3b8" stroke="#1e293b" stroke-width="2" />
+              <rect x="54" y="28" width="8" height="8" fill="#94a3b8" stroke="#1e293b" stroke-width="2" />
+            </g>
+            <!-- Roda Gigi Oranye -->
+            <g transform="translate(42, 48)">
+              <circle cx="20" cy="20" r="15" fill="#f59e0b" stroke="#1e293b" stroke-width="2.5" />
+              <circle cx="20" cy="20" r="6" fill="#14b8a6" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Bengkel / Garasi -->
+            <g transform="translate(132, 34)">
+              <rect x="64" y="0" width="12" height="26" fill="#fb923c" stroke="#1e293b" stroke-width="2.5" />
+              <polygon points="0,34 42,10 84,34" fill="#fdba74" stroke="#1e293b" stroke-width="2.8" />
+              <rect x="8" y="34" width="68" height="42" fill="#fed7aa" stroke="#1e293b" stroke-width="2.8" />
+              <rect x="20" y="46" width="44" height="30" fill="#475569" stroke="#1e293b" stroke-width="2.2" />
+              <rect x="28" y="60" width="28" height="12" rx="3" fill="#f97316" stroke="#1e293b" stroke-width="2" />
+              <circle cx="34" cy="73" r="4" fill="#1e293b" />
+              <circle cx="50" cy="73" r="4" fill="#1e293b" />
+            </g>
+
+            <!-- Ekskavator & Kunci Pas -->
+            <g transform="translate(55, 114)">
+              <rect x="0" y="10" width="38" height="14" rx="4" fill="#facc15" stroke="#1e293b" stroke-width="2.2" />
+              <rect x="22" y="2" width="14" height="10" rx="2" fill="#38bdf8" stroke="#1e293b" stroke-width="2" />
+              <circle cx="10" cy="25" r="6" fill="#334155" stroke="#1e293b" stroke-width="2" />
+              <circle cx="30" cy="25" r="6" fill="#334155" stroke="#1e293b" stroke-width="2" />
+            </g>
+            <path d="M 110 105 L 132 128" stroke="#e2e8f0" stroke-width="7" stroke-linecap="round" />
+            <path d="M 110 105 L 132 128" stroke="#1e293b" stroke-width="2.2" stroke-linecap="round" />
+
+            <!-- Medali Huruf R -->
+            <g transform="translate(208, 132)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-1" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-1" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">R</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 2: I - INVESTIGATIVE (Lab Sains, Mikroskop, DNA)    -->
+          <!-- ========================================================= -->
+          <g id="island-2" class="island-group" data-step="2" onclick="window.handleIslandClick(2)" transform="translate(465, 58)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="142" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 124 C 18 184, 252 184, 248 124 L 248 108 L 22 108 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <path d="M 24 116 C 22 170, 248 170, 246 116 Z" fill="#fde68a" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="135" cy="107" rx="114" ry="58" fill="#22c55e" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Mikroskop -->
+            <g transform="translate(46, 26)">
+              <rect x="6" y="64" width="44" height="9" rx="3" fill="#64748b" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 18 64 C 12 45, 16 28, 30 22" fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round" />
+              <path d="M 18 64 C 12 45, 16 28, 30 22" fill="none" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" />
+              <rect x="24" y="6" width="12" height="34" rx="2" transform="rotate(-22 30 22)" fill="#e2e8f0" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="24" y="48" width="24" height="5" fill="#334155" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Labu Erlenmeyer & Tabung Reaksi -->
+            <g transform="translate(102, 34)">
+              <polygon points="14,0 24,0 24,14 36,36 2,36 14,14" fill="#ffffff" stroke="#1e293b" stroke-width="2.3" />
+              <polygon points="8,24 30,24 35,35 3,35" fill="#f43f5e" />
+              <circle cx="19" cy="-8" r="3" fill="#f43f5e" stroke="#1e293b" stroke-width="1.5" />
+            </g>
+            <g transform="translate(120, 66)">
+              <circle cx="24" cy="28" r="22" fill="#e0f2fe" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 4 30 A 20 20 0 0 0 44 30 Z" fill="#38bdf8" />
+              <rect x="18" y="0" width="12" height="10" fill="#ffffff" stroke="#1e293b" stroke-width="2.2" />
+            </g>
+
+            <!-- Rantai DNA -->
+            <g transform="translate(154, 14)">
+              <path d="M 4 0 Q 22 12 4 24 T 4 48" fill="none" stroke="#3b82f6" stroke-width="3.5" />
+              <path d="M 20 0 Q 2 12 20 24 T 20 48" fill="none" stroke="#f97316" stroke-width="3.5" />
+              <line x1="6" y1="12" x2="18" y2="12" stroke="#1e293b" stroke-width="2" />
+              <line x1="6" y1="36" x2="18" y2="36" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Observatorium -->
+            <g transform="translate(182, 36)">
+              <path d="M 6 32 A 22 22 0 0 1 50 32 Z" fill="#f8fafc" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="8" y="32" width="40" height="24" rx="2" fill="#e2e8f0" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="22" y="40" width="12" height="16" fill="#475569" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Medali Huruf I -->
+            <g transform="translate(135, 152)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-2" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-2" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">I</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 3: A - ARTISTIC (Palet Lukis, Gitar, Panggung)      -->
+          <!-- ========================================================= -->
+          <g id="island-3" class="island-group" data-step="3" onclick="window.handleIslandClick(3)" transform="translate(795, 65)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="138" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 122 C 18 182, 252 182, 248 122 L 248 106 L 22 106 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <path d="M 24 114 C 22 168, 248 168, 246 114 Z" fill="#fde68a" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="135" cy="105" rx="114" ry="58" fill="#fb923c" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Kuas & Palet Cat -->
+            <line x1="56" y1="30" x2="88" y2="104" stroke="#78350f" stroke-width="6" stroke-linecap="round" />
+            <polygon points="56,30 48,16 62,22" fill="#ef4444" stroke="#1e293b" stroke-width="2" />
+            <g transform="translate(76, 22)">
+              <ellipse cx="42" cy="36" rx="40" ry="30" fill="#fde68a" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="24" cy="28" r="6" fill="#ef4444" stroke="#1e293b" stroke-width="1.5" />
+              <circle cx="42" cy="20" r="6" fill="#3b82f6" stroke="#1e293b" stroke-width="1.5" />
+              <circle cx="60" cy="28" r="6" fill="#22c55e" stroke="#1e293b" stroke-width="1.5" />
+              <circle cx="56" cy="46" r="6" fill="#a855f7" stroke="#1e293b" stroke-width="1.5" />
+              <circle cx="26" cy="46" r="5" fill="#fb923c" stroke="#1e293b" stroke-width="1.8" />
+            </g>
+
+            <!-- Gitar Akustik -->
+            <g transform="translate(178, 18) rotate(32)">
+              <rect x="13" y="0" width="6" height="44" fill="#78350f" stroke="#1e293b" stroke-width="2" />
+              <circle cx="16" cy="52" r="14" fill="#facc15" stroke="#1e293b" stroke-width="2.5" />
+              <circle cx="16" cy="68" r="18" fill="#facc15" stroke="#1e293b" stroke-width="2.5" />
+              <circle cx="16" cy="56" r="5" fill="#451a03" />
+            </g>
+
+            <!-- Panggung Teater -->
+            <g transform="translate(154, 88)">
+              <rect x="0" y="0" width="66" height="42" rx="3" fill="#581c87" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 0 0 Q 16 14 33 0 Q 50 14 66 0 L 66 10 L 0 10 Z" fill="#ef4444" stroke="#1e293b" stroke-width="2" />
+              <path d="M 0 0 L 14 0 L 8 38 L 0 38 Z" fill="#dc2626" stroke="#1e293b" stroke-width="2" />
+              <path d="M 66 0 L 52 0 L 58 38 L 66 38 Z" fill="#dc2626" stroke="#1e293b" stroke-width="2" />
+              <rect x="-4" y="38" width="74" height="7" rx="2" fill="#d97706" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Not Balok -->
+            <text x="148" y="24" font-size="22" font-weight="bold" fill="#1e293b">♫</text>
+
+            <!-- Medali Huruf A -->
+            <g transform="translate(135, 150)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-3" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-3" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">A</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 4: S - SOCIAL (Tangan Membantu, Hati, Sekolah)      -->
+          <!-- ========================================================= -->
+          <g id="island-4" class="island-group" data-step="4" onclick="window.handleIslandClick(4)" transform="translate(115, 392)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="142" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 124 C 18 184, 252 184, 248 124 L 248 108 L 22 108 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <ellipse cx="135" cy="107" rx="114" ry="58" fill="#fcd34d" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Dua Tangan Terbuka & Hati Merah -->
+            <g transform="translate(82, 14)">
+              <path d="M 24 62 C 8 52, 2 32, 6 12 C 10 12, 14 26, 18 36 C 22 38, 28 46, 30 62 Z" fill="#fed7aa" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 82 62 C 98 52, 104 32, 100 12 C 96 12, 92 26, 88 36 C 84 38, 78 46, 76 62 Z" fill="#fed7aa" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 53 46 C 53 46, 32 32, 32 19 C 32 11, 43 9, 53 18 C 63 9, 74 11, 74 19 C 74 32, 53 46, 53 46 Z" fill="#f43f5e" stroke="#1e293b" stroke-width="2.5" />
+            </g>
+
+            <!-- Gedung Sekolah -->
+            <g transform="translate(174, 56)">
+              <polygon points="0,24 28,6 56,24" fill="#be123c" stroke="#1e293b" stroke-width="2.3" />
+              <rect x="4" y="24" width="48" height="34" fill="#fef3c7" stroke="#1e293b" stroke-width="2.3" />
+              <circle cx="28" cy="17" r="5" fill="#ffffff" stroke="#1e293b" stroke-width="1.8" />
+              <rect x="22" y="40" width="12" height="18" fill="#92400e" stroke="#1e293b" stroke-width="1.8" />
+            </g>
+
+            <!-- Lingkaran Anak Bergandengan Tangan -->
+            <g transform="translate(88, 92)">
+              <circle cx="14" cy="10" r="5" fill="#f97316" stroke="#1e293b" stroke-width="1.8" />
+              <circle cx="34" cy="6" r="5" fill="#3b82f6" stroke="#1e293b" stroke-width="1.8" />
+              <circle cx="54" cy="10" r="5" fill="#ec4899" stroke="#1e293b" stroke-width="1.8" />
+              <circle cx="24" cy="24" r="5" fill="#22c55e" stroke="#1e293b" stroke-width="1.8" />
+              <circle cx="44" cy="24" r="5" fill="#a855f7" stroke="#1e293b" stroke-width="1.8" />
+              <ellipse cx="34" cy="18" rx="22" ry="11" fill="none" stroke="#1e293b" stroke-width="2.2" />
+            </g>
+
+            <!-- Medali Huruf S -->
+            <g transform="translate(65, 136)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-4" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-4" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">S</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 5: E - ENTERPRISING (Podium, Megafon, Gedung)       -->
+          <!-- ========================================================= -->
+          <g id="island-5" class="island-group" data-step="5" onclick="window.handleIslandClick(5)" transform="translate(450, 392)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="142" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 124 C 18 184, 252 184, 248 124 L 248 108 L 22 108 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <path d="M 24 116 C 22 170, 248 170, 246 116 Z" fill="#fde68a" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="135" cy="107" rx="114" ry="58" fill="#4ade80" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Gedung Pencakar Langit -->
+            <g transform="translate(154, 14)">
+              <rect x="24" y="0" width="26" height="72" fill="#94a3b8" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="0" y="22" width="24" height="50" fill="#cbd5e1" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="50" y="30" width="22" height="42" fill="#64748b" stroke="#1e293b" stroke-width="2.5" />
+              <line x1="30" y1="12" x2="44" y2="12" stroke="#1e293b" stroke-width="2" />
+              <line x1="30" y1="22" x2="44" y2="22" stroke="#1e293b" stroke-width="2" />
+              <line x1="30" y1="32" x2="44" y2="32" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Megafon -->
+            <g transform="translate(66, 36) rotate(-18)">
+              <polygon points="0,12 28,0 28,32 0,20" fill="#f97316" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="28" y="-2" width="6" height="36" rx="2" fill="#ffffff" stroke="#1e293b" stroke-width="2.2" />
+              <rect x="6" y="20" width="7" height="14" rx="2" fill="#475569" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Podium Pidato & Bendera Oranye -->
+            <g transform="translate(114, 66)">
+              <polygon points="2,6 34,6 30,42 6,42" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="0" y="0" width="36" height="7" rx="2" fill="#d97706" stroke="#1e293b" stroke-width="2.2" />
+            </g>
+            <g transform="translate(68, 102)">
+              <ellipse cx="64" cy="18" rx="54" ry="12" fill="#312e81" />
+              <polygon points="8,0 26,4 8,12" fill="#fb923c" stroke="#1e293b" stroke-width="1.8" />
+              <line x1="8" y1="0" x2="8" y2="20" stroke="#1e293b" stroke-width="2" />
+              <polygon points="104,0 122,4 104,12" fill="#fb923c" stroke="#1e293b" stroke-width="1.8" />
+              <line x1="104" y1="0" x2="104" y2="20" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Medali Huruf E -->
+            <g transform="translate(68, 138)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-5" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-5" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">E</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 6: C - CONVENTIONAL (Grafik, Lemari Arsip, Dokumen) -->
+          <!-- ========================================================= -->
+          <g id="island-6" class="island-group" data-step="6" onclick="window.handleIslandClick(6)" transform="translate(785, 392)" filter="url(#island-shadow)">
+            <ellipse cx="135" cy="142" rx="126" ry="72" fill="#a5f3fc" opacity="0.55" />
+            <path d="M 22 124 C 18 184, 252 184, 248 124 L 248 108 L 22 108 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <path d="M 24 116 C 22 170, 248 170, 246 116 Z" fill="#fde68a" stroke="#1e293b" stroke-width="2.5" />
+            <ellipse cx="135" cy="107" rx="114" ry="58" fill="#10b981" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Papan Grafik Batang & Garis -->
+            <g transform="translate(62, 24)">
+              <rect x="0" y="0" width="62" height="52" rx="4" fill="#ffffff" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="10" y="30" width="8" height="14" fill="#3b82f6" />
+              <rect x="22" y="22" width="8" height="22" fill="#22c55e" />
+              <rect x="34" y="16" width="8" height="28" fill="#f59e0b" />
+              <rect x="46" y="10" width="8" height="34" fill="#ef4444" />
+              <polyline points="12,24 26,16 38,12 50,6" fill="none" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Lemari Arsip -->
+            <g transform="translate(152, 34)">
+              <rect x="0" y="0" width="38" height="68" rx="3" fill="#6366f1" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="4" y="6" width="30" height="16" fill="#818cf8" stroke="#1e293b" stroke-width="1.8" />
+              <rect x="4" y="26" width="30" height="16" fill="#818cf8" stroke="#1e293b" stroke-width="1.8" />
+              <rect x="4" y="46" width="30" height="16" fill="#818cf8" stroke="#1e293b" stroke-width="1.8" />
+              <rect x="38" y="16" width="34" height="52" rx="3" fill="#4f46e5" stroke="#1e293b" stroke-width="2.5" />
+              <rect x="43" y="8" width="24" height="12" fill="#fef08a" stroke="#1e293b" stroke-width="1.8" />
+            </g>
+
+            <!-- Folder Kuning & Papan Klip -->
+            <g transform="translate(94, 82)">
+              <path d="M 0 6 L 14 6 L 18 0 L 42 0 L 42 28 L 0 28 Z" fill="#facc15" stroke="#1e293b" stroke-width="2.2" />
+            </g>
+            <g transform="translate(48, 76)">
+              <rect x="0" y="4" width="28" height="34" rx="3" fill="#ffffff" stroke="#1e293b" stroke-width="2.2" />
+              <rect x="8" y="0" width="12" height="6" rx="1" fill="#94a3b8" stroke="#1e293b" stroke-width="1.8" />
+              <line x1="6" y1="14" x2="22" y2="14" stroke="#1e293b" stroke-width="2" />
+              <line x1="6" y1="22" x2="22" y2="22" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Medali Huruf C -->
+            <g transform="translate(65, 138)">
+              <circle cx="0" cy="4" r="24" fill="#b45309" stroke="#1e293b" stroke-width="2.5" />
+              <circle id="coin-bg-6" cx="0" cy="0" r="24" fill="url(#coin-grad)" stroke="#1e293b" stroke-width="2.8" />
+              <circle cx="0" cy="0" r="18" fill="none" stroke="#ca8a04" stroke-width="1.8" />
+              <text id="coin-text-6" x="0" y="9" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="26" fill="#78350f">C</text>
+            </g>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PULAU 7: FINISH (Sudut Kanan Bawah - Piala & Bendera)     -->
+          <!-- ========================================================= -->
+          <g id="island-7" class="island-group" data-step="7" onclick="window.handleIslandClick(7)" transform="translate(1030, 530)" filter="url(#island-shadow)">
+            <ellipse cx="78" cy="86" rx="72" ry="40" fill="#a5f3fc" opacity="0.65" />
+            <path d="M 14 78 C 12 110, 144 110, 142 78 L 142 66 L 14 66 Z" fill="#92400e" stroke="#1e293b" stroke-width="3" />
+            <ellipse cx="78" cy="66" rx="64" ry="32" fill="#86efac" stroke="#1e293b" stroke-width="3" />
+
+            <!-- Bendera Balap Kotak-Kotak -->
+            <g transform="translate(24, 14)">
+              <line x1="2" y1="0" x2="2" y2="46" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
+              <rect x="2" y="2" width="32" height="20" fill="#ffffff" stroke="#1e293b" stroke-width="2" />
+              <rect x="2" y="2" width="8" height="6" fill="#1e293b" />
+              <rect x="18" y="2" width="8" height="6" fill="#1e293b" />
+              <rect x="10" y="8" width="8" height="7" fill="#1e293b" />
+              <rect x="26" y="8" width="8" height="7" fill="#1e293b" />
+              <rect x="2" y="15" width="8" height="7" fill="#1e293b" />
+              <rect x="18" y="15" width="8" height="7" fill="#1e293b" />
+            </g>
+
+            <!-- Piala Emas Juara -->
+            <g transform="translate(64, 12)">
+              <path d="M 6 6 L 34 6 L 30 26 C 28 34, 12 34, 10 26 Z" fill="#facc15" stroke="#1e293b" stroke-width="2.5" />
+              <path d="M 6 10 C -2 10, -2 22, 8 22" fill="none" stroke="#eab308" stroke-width="3" />
+              <path d="M 34 10 C 42 10, 42 22, 32 22" fill="none" stroke="#eab308" stroke-width="3" />
+              <rect x="17" y="32" width="6" height="10" fill="#eab308" stroke="#1e293b" stroke-width="2" />
+              <rect x="10" y="42" width="20" height="6" rx="2" fill="#78350f" stroke="#1e293b" stroke-width="2" />
+            </g>
+
+            <!-- Bendera Merah-Putih -->
+            <g transform="translate(114, 16)">
+              <line x1="2" y1="0" x2="2" y2="42" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" />
+              <rect x="2" y="2" width="24" height="8" fill="#ef4444" stroke="#1e293b" stroke-width="1.6" />
+              <rect x="2" y="10" width="24" height="8" fill="#ffffff" stroke="#1e293b" stroke-width="1.6" />
+            </g>
+
+            <!-- Plakat FINISH -->
+            <rect x="38" y="76" width="80" height="24" rx="12" fill="#facc15" stroke="#1e293b" stroke-width="2.5" />
+            <text x="78" y="93" text-anchor="middle" font-family="Fredoka, sans-serif" font-weight="700" font-size="14" fill="#1e293b">FINISH</text>
+          </g>
+
+          <!-- ========================================================= -->
+          <!-- PION KAPAL LAYAR PEMAIN (BERGERAK SECARA DINAMIS)         -->
+          <!-- ========================================================= -->
+          <g id="player-ship" transform="translate(108, 95)" style="pointer-events: none;">
+            <!-- Riak Air Laut Saat Berlayar -->
+            <ellipse id="ship-wake" cx="0" cy="24" rx="34" ry="11" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="10 6" opacity="0" />
+            <g id="ship-hull-group" class="ship-bob">
+              <ellipse cx="0" cy="24" rx="28" ry="8" fill="#0e7490" opacity="0.45" />
+              <line x1="0" y1="-34" x2="0" y2="12" stroke="#1e293b" stroke-width="3.5" stroke-linecap="round" />
+              <polygon points="0,-34 16,-29 0,-24" fill="#ef4444" stroke="#1e293b" stroke-width="1.8" />
+              <path d="M -2 -28 Q -24 -10 -4 8 L -2 8 Z" fill="#ffffff" stroke="#1e293b" stroke-width="2.4" />
+              <path d="M 2 -24 Q 22 -8 4 8 L 2 8 Z" fill="#fef08a" stroke="#1e293b" stroke-width="2.4" />
+              <path d="M -24 10 L 24 10 L 17 22 L -17 22 Z" fill="#dc2626" stroke="#1e293b" stroke-width="2.6" />
+              <line x1="-20" y1="15" x2="20" y2="15" stroke="#facc15" stroke-width="2.5" />
+            </g>
+          </g>
+
+        </svg>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1: LAYAR PEMBUKA & FORM PROFIL SISWA + PEMILIHAN MODE BERMAIN   -->
+  <!-- ===================================================================== -->
+  <div id="welcome-modal" class="modal-overlay is-open">
+    <div class="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 board-card relative my-auto">
+      <div class="text-center mb-5">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-amber-400 border-2 border-slate-800 text-3xl mb-2.5 shadow-md">
+          🗺️
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-800">
+          Ekspedisi Kepulauan RIASEC
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-600 mt-1.5">
+          Isi profil siswa terlebih dahulu untuk memulai petualangan <strong>Teori Karier John Holland</strong>!
+        </p>
+      </div>
+
+      <!-- Form Profil Siswa (Nama Lengkap & Kelas) -->
+      <div class="bg-slate-50 rounded-2xl p-4 border-2 border-slate-200 mb-4 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="input-student-name" class="block text-xs font-bold text-slate-700 mb-1">
+              👤 Nama Lengkap Siswa <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="input-student-name"
+              placeholder="Contoh: Ahmad Fauzan"
+              class="w-full px-3.5 py-2 rounded-xl bg-white border-2 border-slate-300 focus:border-slate-800 focus:outline-none text-sm font-semibold text-slate-800"
+            />
+          </div>
+          <div>
+            <label for="input-student-class" class="block text-xs font-bold text-slate-700 mb-1">
+              🏫 Kelas <span class="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="input-student-class"
+              placeholder="Contoh: XII IPA 2 / XI IPS 1"
+              class="w-full px-3.5 py-2 rounded-xl bg-white border-2 border-slate-300 focus:border-slate-800 focus:outline-none text-sm font-semibold text-slate-800"
+            />
+          </div>
+        </div>
+        <p id="welcome-error-msg" class="hidden text-xs font-bold text-rose-600">
+          ⚠️ Harap isi Nama Lengkap Siswa dan Kelas sebelum menuju Pulau START!
+        </p>
+      </div>
+
+      <!-- Pilihan Mode Bermain -->
+      <div class="space-y-2.5 mb-5">
+        <label class="block cursor-pointer">
+          <input type="radio" name="game-mode" value="explore" checked class="peer sr-only" />
+          <div class="p-3.5 rounded-2xl border-2 border-slate-300 peer-checked:border-slate-800 peer-checked:bg-sky-50 transition-all flex items-start gap-3">
+            <span class="text-2xl mt-0.5">🎓</span>
+            <div>
+              <div class="font-display font-bold text-slate-800 text-sm sm:text-base">
+                1. Mode Eksplorasi & Kuis Edukasi
+              </div>
+              <p class="text-xs text-slate-600">
+                Pelajari konsep kepribadian di tiap pulau, jawab 1 kuis pemahaman dengan umpan balik instan, serta nilai 2 minat aktivitas pribadi.
+              </p>
+            </div>
+          </div>
+        </label>
+
+        <label class="block cursor-pointer">
+          <input type="radio" name="game-mode" value="quicktest" class="peer sr-only" />
+          <div class="p-3.5 rounded-2xl border-2 border-slate-300 peer-checked:border-slate-800 peer-checked:bg-amber-50 transition-all flex items-start gap-3">
+            <span class="text-2xl mt-0.5">⚡</span>
+            <div>
+              <div class="font-display font-bold text-slate-800 text-sm sm:text-base">
+                2. Mode Tes Minat RIASEC Cepat (18 Skenario)
+              </div>
+              <p class="text-xs text-slate-600">
+                Langsung hadapi 3 skenario aktivitas nyata per pulau (skala minat 4 tingkat) untuk menentukan profil 3 kode Holland secara akurat.
+              </p>
+            </div>
+          </div>
+        </label>
+      </div>
+
+      <button type="button" id="btn-start-game" onclick="window.submitProfileAndDockStart()" class="w-full py-3.5 px-6 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-display font-bold text-base sm:text-lg board-btn flex items-center justify-center gap-2">
+        <span>🏝️</span> Masuk ke Dermaga Pulau START
+      </button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 1B: SAMBUTAN DERMAGA PULAU START (TOMBOL MULAI BERLAYAR)        -->
+  <!-- ===================================================================== -->
+  <div id="start-brief-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 board-card relative my-auto text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-300 border-2 border-slate-800 text-3xl mb-3 shadow">
+        ⚓
+      </div>
+      <span class="inline-block px-3 py-0.5 rounded-full bg-amber-200 border border-slate-800 text-xs font-bold text-slate-900 mb-2">
+        Dermaga Pulau START
+      </span>
+      <h2 id="start-brief-title" class="text-2xl font-bold text-slate-800">
+        Siap Berlayar, Kapten!
+      </h2>
+      <p id="start-brief-desc" class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+        Kamu akan mengunjungi 6 pulau kepribadian <strong>R - I - A - S - E - C</strong> secara berurutan hingga mencapai <strong>Pulau FINISH</strong> untuk membuka sertifikat profil kariermu.
+      </p>
+
+      <div class="bg-sky-50 rounded-2xl p-3.5 border-2 border-sky-200 my-4 text-left text-xs space-y-1.5 text-slate-700">
+        <div class="font-bold text-slate-800">🧭 Panduan Singkat Pelayaran:</div>
+        <div>• Klik tombol <strong>"Mulai Berlayar ke Pulau R"</strong> di bawah ini untuk melepas jangkar.</div>
+        <div>• Kamu juga dapat mengklik <strong>Pulau START</strong> atau <strong>Pulau R</strong> langsung di peta kapan saja.</div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-2.5">
+        <button type="button" onclick="window.closeStartBriefOnly()" class="flex-1 py-3 px-4 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs sm:text-sm board-btn">
+          🗺️ Lihat Peta Dulu
+        </button>
+        <button type="button" id="btn-launch-voyage" onclick="window.startVoyageFromStart()" class="flex-[2] py-3 px-5 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-display font-bold text-sm sm:text-base board-btn pulse-cta">
+          ⛵ Mulai Berlayar ke Pulau R
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 2: KARTU EDUKASI & TANTANGAN PULAU RIASEC                       -->
+  <!-- ===================================================================== -->
+  <div id="island-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col board-card overflow-hidden my-auto">
+      <!-- Header Pulau Berwarna Dinamis -->
+      <div id="modal-header-bg" class="px-5 py-4 border-b-2 border-slate-800 flex items-center justify-between bg-teal-400">
+        <div class="flex items-center gap-3">
+          <div id="modal-letter-badge" class="w-12 h-12 rounded-full bg-amber-300 border-2 border-slate-800 flex items-center justify-center font-display font-bold text-2xl text-slate-900 shadow">
+            R
+          </div>
+          <div>
+            <span id="modal-island-tag" class="text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-white/80 text-slate-800">
+              Pulau 1 dari 6
+            </span>
+            <h3 id="modal-island-title" class="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+              Realistic (Si Praktis)
+            </h3>
+          </div>
+        </div>
+        <button type="button" id="btn-close-island-modal" onclick="window.closeIslandModal()" class="w-9 h-9 rounded-xl bg-white/90 hover:bg-white text-slate-800 font-bold board-btn flex items-center justify-center" title="Tutup sementara">
+          ✕
+        </button>
+      </div>
+
+      <!-- Konten Scrollable -->
+      <div id="modal-body-content" class="p-5 sm:p-6 overflow-y-auto custom-scroll space-y-5 text-sm sm:text-base">
+        <!-- Diisi secara dinamis oleh JS -->
+      </div>
+
+      <!-- Footer Aksi Pulau -->
+      <div class="px-5 py-3.5 bg-slate-50 border-t-2 border-slate-800 flex items-center justify-between gap-3">
+        <span id="modal-validation-msg" class="text-xs sm:text-sm font-semibold text-rose-600"></span>
+        <button type="button" id="btn-submit-island" class="px-5 py-2.5 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-display font-bold text-sm sm:text-base board-btn">
+          Simpan & Berlayar ke Pulau Berikutnya ⛵
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL 3: HASIL AKHIR PROFIL KARIER HOLLAND (PULAU FINISH)             -->
+  <!-- ===================================================================== -->
+  <div id="result-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl max-w-3xl w-full max-h-[92vh] flex flex-col board-card overflow-hidden my-auto">
+      <!-- Header Piala Finish -->
+      <div class="px-6 py-4 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 border-b-2 border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl sm:text-4xl">🏆</span>
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-slate-900">
+              Sertifikat & Laporan Profil Karier Holland
+            </h2>
+            <p class="text-xs sm:text-sm font-medium text-slate-800">
+              Hasil Ekspedisi Kepulauan RIASEC Berbasis Teori John Holland
+            </p>
+          </div>
+        </div>
+        <button type="button" id="btn-close-result" onclick="window.closeResultModal()" class="w-9 h-9 rounded-xl bg-white/90 hover:bg-white text-slate-800 font-bold board-btn no-print">
+          ✕
+        </button>
+      </div>
+
+      <!-- Konten Hasil Analisis -->
+      <div id="result-body-content" class="p-5 sm:p-6 overflow-y-auto custom-scroll space-y-5">
+        <!-- Diisi dinamis oleh JS -->
+      </div>
+
+      <!-- Footer Tombol Cetak & Main Lagi -->
+      <div class="px-6 py-3.5 bg-slate-50 border-t-2 border-slate-800 flex flex-wrap items-center justify-between gap-2.5 no-print">
+        <button type="button" id="btn-view-map-again" onclick="window.closeResultModal()" class="px-4 py-2 rounded-xl bg-sky-200 hover:bg-sky-300 text-slate-900 font-bold text-xs sm:text-sm board-btn">
+          🗺️ Lihat Peta
+        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="btn-print-report" onclick="window.printCareerReport()" class="px-4 py-2 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-slate-900 font-display font-bold text-xs sm:text-sm board-btn">
+            🖨️ Cetak / Simpan PDF Laporan
+          </button>
+          <button type="button" id="btn-play-again" onclick="window.resetGame()" class="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-display font-bold text-xs sm:text-sm board-btn">
+            🔄 Main Ulang / Ganti Siswa
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- LOGIKA GAME EDUKASI & INTERAKTIVITAS JAVASCRIPT                       -->
+  <!-- ===================================================================== -->
+  <script>
+    // =========================================================================
+    // 1. DATA KOMPREHENSIF TEORI KARIER HOLLAND (RIASEC)
+    // =========================================================================
+    const RIASEC_DATA = [
+      {
+        step: 1,
+        code: 'R',
+        name: 'Realistic (Si Praktis)',
+        subtitle: 'Suka bekerja dengan alat, mesin, alam, dan aktivitas fisik nyata',
+        headerColor: 'bg-teal-400',
+        barColor: 'bg-teal-500',
+        description:
+          'Tipe Realistic menyukai kegiatan yang praktis, terstruktur, dan melibatkan benda nyata seperti mesin, peralatan teknik, kendaraan, tanaman, atau hewan. Mereka lebih suka "langsung bekerja praktik" daripada berdiskusi abstrak.',
+        traits: ['Praktis & Terampil', 'Mandiri', 'Suka Aktivitas Luar Ruangan', 'Logis & Mekanis'],
+        majors: ['Teknik Mesin & Otomotif', 'Teknik Sipil & Arsitektur', 'Agronomi & Kehutanan', 'Teknik Elektro & Robotika'],
+        careers: ['Insinyur Mesin', 'Arsitek Lapangan', 'Pilot / Teknisi Penerbangan', 'Ahli Pertanian & Lingkungan', 'Chef / Koki Profesional'],
+        quiz: {
+          question: 'Manakah ciri utama seseorang dengan tipe kepribadian Realistic (R)?',
+          options: [
+            'Lebih suka mengoperasikan mesin, merakit alat, dan bekerja dengan objek nyata',
+            'Sangat suka berpidato di depan umum dan memimpin kampanye politik',
+            'Menghabiskan waktu menulis puisi dan melukis abstrak'
+          ],
+          correctIndex: 0,
+          explanation: 'Tepat! Tipe Realistic berorientasi pada keterampilan teknis, alat fisik, dan hasil kerja yang nyata.'
+        },
+        scenarios: [
+          'Merakit, memperbaiki peralatan elektronik/mekanik, atau membangun proyek fisik dengan tangan sendiri.',
+          'Bekerja di lapangan terbuka, bengkel, atau mengoperasikan teknologi/mesin modern.',
+          'Menggunakan perkakas tangan maupun mesin untuk membuat kerajinan kayu, logam, atau otomotif.'
+        ]
+      },
+      {
+        step: 2,
+        code: 'I',
+        name: 'Investigative (Si Pemikir)',
+        subtitle: 'Suka mengamati, meneliti, menganalisis, dan memecahkan masalah ilmiah',
+        headerColor: 'bg-emerald-400',
+        barColor: 'bg-emerald-500',
+        description:
+          'Tipe Investigative memiliki rasa ingin tahu intelektual yang sangat tinggi. Mereka senang mengeksplorasi ide, melakukan eksperimen laboratorium, menganalisis data sains, dan mencari tahu "mengapa" sesuatu terjadi.',
+        traits: ['Analitis & Kritis', 'Rasa Ingin Tahu Tinggi', 'Teliti', 'Suka Riset & Sains'],
+        majors: ['Kedokteran & Farmasi', 'Biologi, Kimia & Fisika', 'Ilmu Komputer & Data Science', 'Astronomi & Geologi'],
+        careers: ['Peneliti / Ilmuwan', 'Dokter & Apoteker', 'Data Scientist / Analis Sistem', 'Ahli Forensik', 'Dosen / Akademisi'],
+        quiz: {
+          question: 'Aktivitas manakah yang paling menggambarkan Pulau Investigative (I)?',
+          options: [
+            'Mengatur jadwal rapat dan mengarsipkan dokumen keuangan perusahaan',
+            'Melakukan eksperimen ilmiah di laboratorium dan menganalisis hipotesis',
+            'Menjual produk baru kepada pelanggan dengan target penjualan tinggi'
+          ],
+          correctIndex: 1,
+          explanation: 'Benar! Tipe Investigative sangat menikmati proses observasi, eksperimen, dan pemecahan masalah berbasis ilmu.'
+        },
+        scenarios: [
+          'Melakukan eksperimen sains, riset mendalam, atau memecahkan teka-teki logika dan matematika yang rumit.',
+          'Membaca jurnal ilmiah, menganalisis penyebab suatu fenomena, atau mengembangkan perangkat lunak/algoritma.',
+          'Mengamati benda langit, ekosistem alam, atau menguji hipotesis di laboratorium sekolah.'
+        ]
+      },
+      {
+        step: 3,
+        code: 'A',
+        name: 'Artistic (Si Kreator)',
+        subtitle: 'Suka berekspresi bebas, berimajinasi, seni visual, musik, dan desain',
+        headerColor: 'bg-orange-400',
+        barColor: 'bg-orange-500',
+        description:
+          'Tipe Artistic adalah pribadi yang ekspresif, orisinal, dan penuh imajinasi. Mereka menyukai lingkungan kerja yang fleksibel tanpa aturan yang terlalu kaku agar dapat menciptakan karya seni, desain, tulisan, maupun pertunjukan.',
+        traits: ['Kreatif & Imajinatif', 'Ekspresif', 'Intuitif', 'Menghargai Estetika'],
+        majors: ['Desain Komunikasi Visual (DKV)', 'Seni Musik & Seni Rupa', 'Sastra & Penulisan Kreatif', 'Film, Animasi & Teater'],
+        careers: ['Desainer UI/UX & Grafis', 'Musisi / Komposer', 'Sutradara / Konten Kreator', 'Penulis / Jurnalis Kreatif', 'Desainer Interior & Mode'],
+        quiz: {
+          question: 'Lingkungan kerja seperti apa yang paling disukai oleh tipe Artistic (A)?',
+          options: [
+            'Lingkungan yang sangat kaku dengan prosedur rutin yang sama setiap hari',
+            'Lingkungan bebas yang memberi ruang untuk kreativitas, desain, dan ekspresi diri',
+            'Lingkungan yang berfokus pada perbaikan mesin berat'
+          ],
+          correctIndex: 1,
+          explanation: 'Mantap! Tipe Artistic berkembang pesat ketika diberi kebebasan berinovasi dan mengekspresikan ide orisinal.'
+        },
+        scenarios: [
+          'Membuat desain visual, melukis, mengedit video kreatif, atau bermain alat musik.',
+          'Menulis cerita fiksi, merancang konsep acara seni, atau mengekspresikan ide dengan cara yang unik.',
+          'Menata dekorasi ruangan, merancang busana, atau tampil dalam pementasan drama dan fotografi.'
+        ]
+      },
+      {
+        step: 4,
+        code: 'S',
+        name: 'Social (Si Penolong)',
+        subtitle: 'Suka mengajar, membimbing, bekerja sama, dan membantu sesama',
+        headerColor: 'bg-amber-300',
+        barColor: 'bg-amber-500',
+        description:
+          'Tipe Social memiliki empati tinggi dan kepedulian mendalam terhadap kesejahteraan orang lain. Mereka senang berkomunikasi, mengajar, melatih, mendengarkan curhat, dan bekerja dalam tim yang harmonis.',
+        traits: ['Empatik & Ramah', 'Komunikatif', 'Suka Membantu', 'Kooperatif dalam Tim'],
+        majors: ['Psikologi & Bimbingan Konseling', 'Pendidikan & Keguruan', 'Keperawatan & Kesehatan Masyarakat', 'Ilmu Komunikasi & Sosiologi'],
+        careers: ['Psikolog / Konselor', 'Guru / Dosen / Trainer', 'Perawat / Terapis', 'Pekerja Sosial / Aktivis NGO', 'HRD (Pengembangan SDM)'],
+        quiz: {
+          question: 'Apa motivasi utama seseorang dengan kepribadian Social (S) dalam berkarier?',
+          options: [
+            'Membantu orang lain berkembang, mendidik, dan memberi dampak positif bagi masyarakat',
+            'Mengumpulkan data statistik di ruang arsip sendirian',
+            'Merancang sirkuit elektronik mikro'
+          ],
+          correctIndex: 0,
+          explanation: 'Sempurna! Tipe Social menemukan kepuasan terbesar saat dapat melayani, membimbing, dan berinteraksi dengan sesama.'
+        },
+        scenarios: [
+          'Mengajar, menjelaskan materi kepada teman yang kesulitan, atau menjadi relawan kegiatan sosial.',
+          'Mendengarkan masalah orang lain dengan empati dan membantu mencarikan solusi bersama.',
+          'Bekerja sama dalam kelompok diskusi untuk membimbing dan memotivasi anggota tim.'
+        ]
+      },
+      {
+        step: 5,
+        code: 'E',
+        name: 'Enterprising (Si Penggerak)',
+        subtitle: 'Suka memimpin, memengaruhi orang lain, berwirausaha, dan mengambil keputusan',
+        headerColor: 'bg-lime-400',
+        barColor: 'bg-lime-600',
+        description:
+          'Tipe Enterprising adalah pribadi yang energik, percaya diri, dan berjiwa pemimpin. Mereka pandai bernegosiasi, meyakinkan orang lain, melihat peluang bisnis, dan berani mengambil risiko untuk mencapai target besar.',
+        traits: ['Jiwa Kepemimpinan', 'Persuasif & Percaya Diri', 'Ambisius', 'Berorientasi Target'],
+        majors: ['Manajemen & Bisnis', 'Kewirausahaan (Entrepreneurship)', 'Ilmu Hukum & Hubungan Internasional', 'Pemasaran (Marketing)'],
+        careers: ['Pengusaha / Founder Startup', 'Manajer Proyek / Eksekutif', 'Pengacara / Diplomat', 'Public Relations / Sales Manager', 'Produser Acara'],
+        quiz: {
+          question: 'Kemampuan manakah yang paling menonjol pada tipe Enterprising (E)?',
+          options: [
+            'Memimpin tim, mempresentasikan ide bisnis, dan memengaruhi orang lain',
+            'Mengamati sel bakteri di bawah mikroskop selama berjam-jam',
+            'Menyusun laporan pembukuan pajak secara diam-diam'
+          ],
+          correctIndex: 0,
+          explanation: 'Betul sekali! Tipe Enterprising unggul dalam kepemimpinan, komunikasi persuasif, dan pengelolaan bisnis.'
+        },
+        scenarios: [
+          'Memimpin organisasi/kelompok, berpidato, atau meyakinkan orang lain untuk mendukung idemu.',
+          'Merancang ide bisnis/jualan, bernegosiasi, dan mengatur strategi agar tim mencapai target.',
+          'Mengambil inisiatif menjadi ketua panitia acara dan mengelola promosi kegiatan.'
+        ]
+      },
+      {
+        step: 6,
+        code: 'C',
+        name: 'Conventional (Si Teratur)',
+        subtitle: 'Suka keteraturan, pengelolaan data, angka, administrasi, dan ketelitian',
+        headerColor: 'bg-emerald-300',
+        barColor: 'bg-cyan-600',
+        description:
+          'Tipe Conventional menyukai sistem yang rapi, terorganisir, jelas, dan akurat. Mereka sangat andal dalam mengelola data, angka, arsip, jadwal, serta memastikan setiap detail berjalan sesuai standar prosedur.',
+        traits: ['Rapi & Terorganisir', 'Teliti & Akurat', 'Sistematis', 'Dapat Diandalkan'],
+        majors: ['Akuntansi & Keuangan', 'Administrasi Bisnis & Perkantoran', 'Statistika & Aktuaria', 'Manajemen Informasi & Perpustakaan'],
+        careers: ['Akuntan / Auditor', 'Analis Keuangan & Perbankan', 'Administrator Database', 'Aktuaris / Ahli Statistik', 'Sekretaris Eksekutif'],
+        quiz: {
+          question: 'Pekerjaan manakah yang paling cocok untuk tipe Conventional (C)?',
+          options: [
+            'Mengelola laporan keuangan, menyusun basis data, dan memastikan akurasi administrasi',
+            'Melukis mural besar di dinding kota tanpa sketsa',
+            'Memperbaiki mesin traktor di tengah sawah'
+          ],
+          correctIndex: 0,
+          explanation: 'Tepat! Tipe Conventional adalah tulang punggung keteraturan organisasi melalui ketelitian data dan administrasi.'
+        },
+        scenarios: [
+          'Menyusun jadwal kegiatan secara rapi, merapikan arsip/dokumen, atau membuat daftar periksa (checklist).',
+          'Mengolah angka, tabel spreadsheet, atau memastikan setiap detail tugas bebas dari kesalahan.',
+          'Mencatat pemasukan dan pengeluaran keuangan kegiatan secara teratur dan sistematis.'
+        ]
+      }
+    ];
+
+    // Koordinat Posisi Kapal untuk setiap langkah (0 = START, 1..6 = RIASEC, 7 = FINISH)
+    const SHIP_WAYPOINTS = [
+      { x: 108, y: 95, label: 'Pulau START' },
+      { x: 290, y: 175, label: 'Pulau R (Realistic)' },
+      { x: 600, y: 170, label: 'Pulau I (Investigative)' },
+      { x: 930, y: 175, label: 'Pulau A (Artistic)' },
+      { x: 250, y: 500, label: 'Pulau S (Social)' },
+      { x: 585, y: 500, label: 'Pulau E (Enterprising)' },
+      { x: 920, y: 500, label: 'Pulau C (Conventional)' },
+      { x: 1105, y: 592, label: 'Pulau FINISH' }
+    ];
+
+    // =========================================================================
+    // 2. STATE PERMAINAN
+    // =========================================================================
+    const gameState = {
+      studentName: '',
+      studentClass: '',
+      mode: 'explore', // 'explore' atau 'quicktest'
+      currentStep: 0, // 0 = START, 1..6 = RIASEC, 7 = FINISH
+      completedSteps: new Set([0]),
+      scores: { R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 },
+      quizCorrectCount: 0,
+      soundEnabled: true,
+      isSailing: false
+    };
+
+    // =========================================================================
+    // 3. SISTEM EFEK SUARA SINTETIS (WEB AUDIO API)
+    // =========================================================================
+    const AudioFX = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume().catch(() => {});
+        }
+      },
+      playTone(freq, type = 'sine', duration = 0.18, delay = 0) {
+        if (!gameState.soundEnabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+          gain.gain.setValueAtTime(0.12, this.ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + delay);
+          osc.stop(this.ctx.currentTime + delay + duration);
+        } catch (e) {
+          // Abaikan jika browser memblokir autoplay audio
+        }
+      },
+      sail() {
+        this.playTone(330, 'triangle', 0.22, 0);
+        this.playTone(440, 'triangle', 0.28, 0.12);
+      },
+      arrive() {
+        this.playTone(523.25, 'sine', 0.16, 0);
+        this.playTone(659.25, 'sine', 0.24, 0.1);
+      },
+      success() {
+        this.playTone(587.33, 'triangle', 0.15, 0);
+        this.playTone(783.99, 'triangle', 0.25, 0.1);
+      },
+      wrong() {
+        this.playTone(260, 'sawtooth', 0.18, 0);
+        this.playTone(210, 'sawtooth', 0.22, 0.12);
+      },
+      click() {
+        this.playTone(620, 'sine', 0.07, 0);
+      },
+      fanfare() {
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((n, i) => this.playTone(n, 'triangle', 0.3, i * 0.12));
+      }
+    };
+
+    // =========================================================================
+    // 4. HELPER BUKA/TUTUP MODAL DENGAN POINTER-EVENTS AMAN
+    // =========================================================================
+    function openModal(modalId) {
+      const el = document.getElementById(modalId);
+      if (!el) return;
+      el.classList.add('is-open');
+    }
+
+    function closeModal(modalId) {
+      const el = document.getElementById(modalId);
+      if (!el) return;
+      el.classList.remove('is-open');
+    }
+
+    // =========================================================================
+    // 5. RENDER INDIKATOR PROGRES ATAS & STATUS KOIN PULAU
+    // =========================================================================
+    function renderProgressTracker() {
+      const progressTracker = document.getElementById('progress-tracker');
+      const progressCountBadge = document.getElementById('hud-progress-count');
+
+      // Hitung pulau RIASEC yang selesai (1..6)
+      let doneRiasecCount = 0;
+      for (let s = 1; s <= 6; s++) {
+        if (gameState.completedSteps.has(s)) doneRiasecCount++;
+      }
+      if (progressCountBadge) {
+        progressCountBadge.textContent = `🏝️ ${doneRiasecCount}/6 Pulau`;
+      }
+
+      const steps = [
+        { step: 0, label: 'START' },
+        { step: 1, label: 'R' },
+        { step: 2, label: 'I' },
+        { step: 3, label: 'A' },
+        { step: 4, label: 'S' },
+        { step: 5, label: 'E' },
+        { step: 6, label: 'C' },
+        { step: 7, label: 'FINISH' }
+      ];
+
+      if (progressTracker) {
+        progressTracker.innerHTML = steps
+          .map((item) => {
+            const isDone = gameState.completedSteps.has(item.step);
+            const isCurrent = gameState.currentStep === item.step;
+            let classes = 'px-2.5 py-1 rounded-lg text-xs font-display font-bold border-2 border-slate-800 transition-all cursor-pointer ';
+            if (isCurrent) {
+              classes += 'bg-amber-400 text-slate-900 scale-105 shadow-sm';
+            } else if (isDone) {
+              classes += 'bg-emerald-400 text-slate-900';
+            } else {
+              classes += 'bg-slate-100 text-slate-500 hover:bg-slate-200';
+            }
+            return `<button type="button" onclick="window.handleIslandClick(${item.step})" class="${classes}">${item.label}</button>`;
+          })
+          .join('');
+      }
+
+      // Sorot pulau aktif & perbarui status koin emas
+      for (let i = 0; i <= 7; i++) {
+        const el = document.getElementById(`island-${i}`);
+        if (el) {
+          if (i === gameState.currentStep) {
+            el.classList.add('island-active');
+          } else {
+            el.classList.remove('island-active');
+          }
+        }
+
+        if (i >= 1 && i <= 6) {
+          const coinBg = document.getElementById(`coin-bg-${i}`);
+          const coinText = document.getElementById(`coin-text-${i}`);
+          const code = RIASEC_DATA[i - 1].code;
+          const isDone = gameState.completedSteps.has(i);
+          const maxUnlocked = Math.max(...Array.from(gameState.completedSteps)) + 1;
+
+          if (coinBg && coinText) {
+            if (isDone) {
+              coinBg.setAttribute('fill', '#4ade80');
+              coinText.textContent = `${code}✓`;
+              coinText.setAttribute('font-size', '20');
+              coinText.setAttribute('fill', '#064e3b');
+            } else if (i <= maxUnlocked) {
+              coinBg.setAttribute('fill', 'url(#coin-grad)');
+              coinText.textContent = code;
+              coinText.setAttribute('font-size', '26');
+              coinText.setAttribute('fill', '#78350f');
+            } else {
+              coinBg.setAttribute('fill', '#cbd5e1');
+              coinText.textContent = code;
+              coinText.setAttribute('font-size', '26');
+              coinText.setAttribute('fill', '#475569');
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 6. ANIMASI KAPAL BERLAYAR ANTAR PULAU + TIMER PENGAMAN 1250ms
+    // =========================================================================
+    function sailShipTo(targetStep, onComplete) {
+      const startPos = SHIP_WAYPOINTS[gameState.currentStep] || SHIP_WAYPOINTS[0];
+      const endPos = SHIP_WAYPOINTS[targetStep];
+      const playerShip = document.getElementById('player-ship');
+      const statusInstruction = document.getElementById('status-instruction');
+
+      if (!endPos || !playerShip) return;
+
+      if (gameState.currentStep === targetStep) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      if (gameState.isSailing) return;
+      gameState.isSailing = true;
+      AudioFX.sail();
+
+      if (statusInstruction) {
+        statusInstruction.textContent = `Kapal ${gameState.studentName || 'Kapten'} sedang berlayar menuju ${endPos.label}...`;
+      }
+
+      const shipWake = document.getElementById('ship-wake');
+      const shipHull = document.getElementById('ship-hull-group');
+      if (shipWake) shipWake.setAttribute('opacity', '0.9');
+
+      const duration = 950; // ms
+      const startTime = performance.now();
+      let finished = false;
+
+      // Titik kontrol melengkung agar kapal berlayar mengikuti ombak
+      const midX = (startPos.x + endPos.x) / 2;
+      const midY = (startPos.y + endPos.y) / 2 - 38;
+
+      function finalizeArrival() {
+        if (finished) return;
+        finished = true;
+        gameState.isSailing = false;
+        gameState.currentStep = targetStep;
+        playerShip.setAttribute('transform', `translate(${endPos.x}, ${endPos.y})`);
+        if (shipWake) shipWake.setAttribute('opacity', '0');
+        if (shipHull) shipHull.removeAttribute('transform');
+        renderProgressTracker();
+        AudioFX.arrive();
+        if (onComplete) onComplete();
+      }
+
+      // Timer pengaman 1250ms untuk menjamin pelayaran selesai di semua browser/tab
+      const safetyTimer = setTimeout(finalizeArrival, 1250);
+
+      function animateFrame(now) {
+        if (finished) return;
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+        const curX = (1 - ease) * (1 - ease) * startPos.x + 2 * (1 - ease) * ease * midX + ease * ease * endPos.x;
+        const curY = (1 - ease) * (1 - ease) * startPos.y + 2 * (1 - ease) * ease * midY + ease * ease * endPos.y;
+        const tilt = Math.sin(t * Math.PI) * (endPos.x >= startPos.x ? 8 : -8);
+
+        playerShip.setAttribute('transform', `translate(${curX.toFixed(1)}, ${curY.toFixed(1)})`);
+        if (shipHull) shipHull.setAttribute('transform', `rotate(${tilt.toFixed(1)})`);
+
+        if (t < 1) {
+          requestAnimationFrame(animateFrame);
+        } else {
+          clearTimeout(safetyTimer);
+          finalizeArrival();
+        }
+      }
+
+      requestAnimationFrame(animateFrame);
+    }
+
+    // =========================================================================
+    // 7. FUNGSI GLOBAL AKSI PULAU START & PELAYARAN
+    // =========================================================================
+    window.submitProfileAndDockStart = function () {
+      const nameInput = document.getElementById('input-student-name');
+      const classInput = document.getElementById('input-student-class');
+      const errorMsg = document.getElementById('welcome-error-msg');
+
+      const trimmedName = nameInput ? nameInput.value.trim() : '';
+      const trimmedClass = classInput ? classInput.value.trim() : '';
+
+      if (!trimmedName || !trimmedClass) {
+        AudioFX.wrong();
+        if (errorMsg) errorMsg.classList.remove('hidden');
+        if (!trimmedName && nameInput) nameInput.focus();
+        else if (classInput) classInput.focus();
+        return;
+      }
+
+      if (errorMsg) errorMsg.classList.add('hidden');
+      gameState.studentName = trimmedName;
+      gameState.studentClass = trimmedClass;
+
+      // Perbarui badge permanen di Header HUD
+      const hudStudent = document.getElementById('hud-student-badge');
+      const hudClass = document.getElementById('hud-class-badge');
+      if (hudStudent) hudStudent.textContent = `👤 ${trimmedName}`;
+      if (hudClass) hudClass.textContent = `🏫 ${trimmedClass}`;
+
+      const selectedRadio = document.querySelector('input[name="game-mode"]:checked');
+      const selectedMode = selectedRadio ? selectedRadio.value : 'explore';
+      gameState.mode = selectedMode;
+
+      const modeBadge = document.getElementById('mode-badge');
+      if (modeBadge) {
+        modeBadge.textContent =
+          selectedMode === 'explore' ? 'Mode: Eksplorasi & Kuis' : 'Mode: Tes Minat Cepat';
+      }
+
+      // Tutup modal profil dan tampilkan modal sambutan di Pulau START
+      closeModal('welcome-modal');
+      AudioFX.arrive();
+
+      const briefTitle = document.getElementById('start-brief-title');
+      if (briefTitle) {
+        briefTitle.textContent = `Siap Berlayar, Kapten ${trimmedName}!`;
+      }
+
+      renderProgressTracker();
+      updateControlBar();
+      openModal('start-brief-modal');
+    };
+
+    window.closeStartBriefOnly = function () {
+      AudioFX.click();
+      closeModal('start-brief-modal');
+      updateControlBar();
+    };
+
+    window.startVoyageFromStart = function () {
+      AudioFX.click();
+      closeModal('start-brief-modal');
+      closeModal('welcome-modal');
+
+      // Sembunyikan CTA denyut pada Pulau START setelah berangkat
+      const svgStartCta = document.getElementById('svg-start-cta');
+      if (svgStartCta) svgStartCta.classList.remove('pulse-cta');
+
+      sailShipTo(1, () => {
+        updateControlBar();
+        openIslandModal(1);
+      });
+    };
+
+    window.sailToNextIsland = function () {
+      const nextStep = Math.min(gameState.currentStep + 1, 7);
+      window.handleIslandClick(nextStep);
+    };
+
+    window.handlePrimaryBannerAction = function () {
+      if (gameState.currentStep === 0) {
+        window.startVoyageFromStart();
+      } else if (gameState.currentStep >= 1 && gameState.currentStep <= 6) {
+        openIslandModal(gameState.currentStep);
+      } else {
+        showFinalResultModal();
+      }
+    };
+
+    // =========================================================================
+    // 8. MENAMPILKAN MODAL EDUKASI & KUIS / SKALA MINAT DI SETIAP PULAU
+    // =========================================================================
+    function openIslandModal(step) {
+      const data = RIASEC_DATA.find((d) => d.step === step);
+      if (!data) return;
+
+      document.getElementById('modal-header-bg').className =
+        `px-5 py-4 border-b-2 border-slate-800 flex items-center justify-between ${data.headerColor}`;
+      document.getElementById('modal-letter-badge').textContent = data.code;
+      document.getElementById('modal-island-tag').textContent = `Pulau ${data.step} dari 6 • Kode ${data.code}`;
+      document.getElementById('modal-island-title').textContent = data.name;
+      document.getElementById('modal-validation-msg').textContent = '';
+
+      const bodyEl = document.getElementById('modal-body-content');
+
+      // Bagian 1: Materi Edukasi Tipe Holland
+      let html = `
+        <div class="bg-slate-50 rounded-2xl p-4 border-2 border-slate-200">
+          <p class="font-semibold text-slate-800 mb-1.5">${data.subtitle}</p>
+          <p class="text-slate-600 text-xs sm:text-sm leading-relaxed">${data.description}</p>
+          <div class="mt-3 flex flex-wrap gap-1.5">
+            ${data.traits
+              .map(
+                (t) =>
+                  `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-white border border-slate-300 text-slate-700">✨ ${t}</span>`
+              )
+              .join('')}
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div>
+              <span class="font-bold text-slate-800 block mb-1">🎓 Contoh Jurusan Kuliah:</span>
+              <span class="text-slate-600">${data.majors.join(', ')}</span>
+            </div>
+            <div>
+              <span class="font-bold text-slate-800 block mb-1">💼 Contoh Profesi Karier:</span>
+              <span class="text-slate-600">${data.careers.join(', ')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Bagian 2A: Mode Eksplorasi & Kuis Edukasi -> 1 Kuis Pemahaman dengan Umpan Balik Instan
+      if (gameState.mode === 'explore') {
+        html += `
+          <div class="bg-sky-50/80 rounded-2xl p-4 border-2 border-sky-200 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-800">🧩 Tantangan Kuis Pemahaman Konsep</span>
+            </div>
+            <p class="font-bold text-slate-800 text-sm">${data.quiz.question}</p>
+            <div class="space-y-2" id="quiz-options-container">
+              ${data.quiz.options
+                .map(
+                  (opt, idx) => `
+                <label class="flex items-start gap-2.5 p-2.5 rounded-xl bg-white border-2 border-slate-200 hover:border-slate-400 cursor-pointer transition-all">
+                  <input type="radio" name="island-quiz" value="${idx}" class="mt-1 accent-slate-800" />
+                  <span class="text-xs sm:text-sm text-slate-700">${opt}</span>
+                </label>
+              `
+                )
+                .join('')}
+            </div>
+            <div id="quiz-feedback" class="hidden text-xs font-semibold p-3 rounded-xl border"></div>
+          </div>
+        `;
+      }
+
+      // Bagian 2B: Penilaian Minat Diri (2 pernyataan di mode eksplorasi, 3 pernyataan di mode tes cepat) - Skala 4 Tingkat
+      const activeScenarios = gameState.mode === 'quicktest' ? data.scenarios : data.scenarios.slice(0, 2);
+      const ratingChoices = [
+        { val: 1, label: 'Sangat Tidak Tertarik' },
+        { val: 2, label: 'Kurang Tertarik' },
+        { val: 3, label: 'Tertarik' },
+        { val: 4, label: 'Sangat Tertarik' }
+      ];
+
+      html += `
+        <div class="bg-amber-50/90 rounded-2xl p-4 border-2 border-amber-200 space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-amber-900">
+            ⭐ Penilaian Minat Aktivitas Pribadi (${activeScenarios.length} Pernyataan)
+          </span>
+          ${activeScenarios
+            .map(
+              (sc, idx) => `
+            <div class="bg-white p-3 rounded-xl border border-amber-200 space-y-2">
+              <p class="text-xs sm:text-sm font-semibold text-slate-800">${idx + 1}. Seberapa tertarik kamu melakukan aktivitas ini?</p>
+              <p class="text-xs sm:text-sm text-slate-600 italic">"${sc}"</p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                ${ratingChoices
+                  .map(
+                    (choice) => `
+                  <label class="cursor-pointer">
+                    <input type="radio" name="interest-${idx}" value="${choice.val}" class="peer sr-only" />
+                    <div class="text-center py-2 px-1.5 rounded-lg border-2 border-slate-200 peer-checked:border-slate-800 peer-checked:bg-amber-300 font-bold text-[11px] sm:text-xs text-slate-700 transition-all">
+                      ${choice.label}
+                    </div>
+                  </label>
+                `
+                  )
+                  .join('')}
+              </div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      `;
+
+      bodyEl.innerHTML = html;
+
+      // Pasang Umpan Balik Instan untuk Kuis Mode Eksplorasi
+      if (gameState.mode === 'explore') {
+        const quizInputs = document.querySelectorAll('input[name="island-quiz"]');
+        const feedbackEl = document.getElementById('quiz-feedback');
+        quizInputs.forEach((inp) => {
+          inp.addEventListener('change', (e) => {
+            const picked = parseInt(e.target.value, 10);
+            feedbackEl.classList.remove(
+              'hidden',
+              'bg-emerald-100',
+              'text-emerald-900',
+              'border-emerald-400',
+              'bg-rose-100',
+              'text-rose-900',
+              'border-rose-400'
+            );
+            if (picked === data.quiz.correctIndex) {
+              AudioFX.success();
+              feedbackEl.classList.add('bg-emerald-100', 'text-emerald-900', 'border-emerald-400');
+              feedbackEl.innerHTML = `✅ <strong>Benar! (+1 Poin Edukasi)</strong> ${data.quiz.explanation}`;
+            } else {
+              AudioFX.wrong();
+              feedbackEl.classList.add('bg-rose-100', 'text-rose-900', 'border-rose-400');
+              feedbackEl.innerHTML = `❌ <strong>Kurang tepat!</strong> ${data.quiz.explanation}`;
+            }
+          });
+        });
+      }
+
+      // Ubah teks tombol submit
+      const btnSubmit = document.getElementById('btn-submit-island');
+      btnSubmit.textContent =
+        step < 6
+          ? `Simpan & Berlayar ke Pulau ${RIASEC_DATA[step].code} ⛵`
+          : 'Selesaikan Ekspedisi & Lihat Laporan 🏆';
+
+      btnSubmit.onclick = () => handleIslandSubmit(data, activeScenarios.length, 4);
+
+      openModal('island-modal');
+    }
+
+    window.closeIslandModal = function () {
+      AudioFX.click();
+      closeModal('island-modal');
+      updateControlBar();
+    };
+
+    // =========================================================================
+    // 9. VALIDASI & PENYIMPANAN JAWABAN PULAU
+    // =========================================================================
+    function handleIslandSubmit(data, scenarioCount, maxScalePerItem) {
+      const validationMsg = document.getElementById('modal-validation-msg');
+
+      // Cek Kuis jika Mode Eksplorasi
+      if (gameState.mode === 'explore') {
+        const selectedQuiz = document.querySelector('input[name="island-quiz"]:checked');
+        if (!selectedQuiz) {
+          AudioFX.wrong();
+          validationMsg.textContent = '⚠️ Pilih salah satu jawaban kuis pemahaman terlebih dahulu!';
+          return;
+        }
+        const ansIdx = parseInt(selectedQuiz.value, 10);
+        if (ansIdx === data.quiz.correctIndex && !gameState.completedSteps.has(data.step)) {
+          gameState.quizCorrectCount += 1;
+        }
+      }
+
+      // Cek Penilaian Minat
+      let totalInterest = 0;
+      for (let i = 0; i < scenarioCount; i++) {
+        const selectedRating = document.querySelector(`input[name="interest-${i}"]:checked`);
+        if (!selectedRating) {
+          AudioFX.wrong();
+          validationMsg.textContent = '⚠️ Pilih tingkat ketertarikanmu pada semua aktivitas di atas!';
+          return;
+        }
+        totalInterest += parseInt(selectedRating.value, 10);
+      }
+
+      // Normalisasi skor ke skala 0 - 100
+      const maxPossible = scenarioCount * maxScalePerItem;
+      const normalizedScore = Math.round((totalInterest / maxPossible) * 100);
+      gameState.scores[data.code] = normalizedScore;
+      gameState.completedSteps.add(data.step);
+
+      AudioFX.success();
+      closeModal('island-modal');
+
+      // Berlayar ke pulau berikutnya (1..6 -> next, 6 -> 7 FINISH)
+      const nextStep = data.step + 1;
+      sailShipTo(nextStep, () => {
+        if (nextStep === 7) {
+          gameState.completedSteps.add(7);
+          renderProgressTracker();
+          updateControlBar();
+          showFinalResultModal();
+        } else {
+          updateControlBar();
+          openIslandModal(nextStep);
+        }
+      });
+    }
+
+    // =========================================================================
+    // 10. HALAMAN HASIL AKHIR (PULAU FINISH) & ANALISIS KODE HOLLAND
+    // =========================================================================
+    function showFinalResultModal() {
+      AudioFX.fanfare();
+      launchConfetti();
+
+      const sortedTypes = [...RIASEC_DATA].sort((a, b) => {
+        return (gameState.scores[b.code] || 0) - (gameState.scores[a.code] || 0);
+      });
+
+      const topThree = sortedTypes.slice(0, 3);
+      const hollandCode = topThree.map((t) => t.code).join('-');
+      const primaryType = topThree[0];
+
+      const badgeColors = ['bg-amber-300', 'bg-sky-300', 'bg-emerald-300'];
+
+      const recommendedCareers = [
+        ...primaryType.careers.slice(0, 3),
+        ...topThree[1].careers.slice(0, 2),
+        ...topThree[2].careers.slice(0, 1)
+      ];
+
+      const recommendedMajors = [
+        ...primaryType.majors.slice(0, 2),
+        ...topThree[1].majors.slice(0, 2)
+      ];
+
+      const currentDate = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+
+      const resultBody = document.getElementById('result-body-content');
+      resultBody.innerHTML = `
+        <!-- Kartu Identitas Siswa -->
+        <div class="bg-white rounded-2xl p-4 border-2 border-slate-800 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+          <div>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Identitas Peserta Ekspedisi</span>
+            <h3 class="text-lg sm:text-xl font-display font-bold text-slate-900">
+              ${gameState.studentName || 'Kapten Petualang'}
+            </h3>
+            <p class="text-xs sm:text-sm font-semibold text-slate-600">
+              Kelas: <span class="text-slate-900">${gameState.studentClass || '-'}</span> • Tanggal: ${currentDate}
+            </p>
+          </div>
+          <div class="flex flex-col items-start sm:items-end gap-1">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-sky-100 text-sky-900 border border-slate-800">
+              ${gameState.mode === 'explore' ? 'Mode Eksplorasi & Kuis' : 'Mode Tes Minat Cepat'}
+            </span>
+            ${
+              gameState.mode === 'explore'
+                ? `<span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-500">
+                     🎯 Skor Kuis Edukasi: ${gameState.quizCorrectCount} / 6 Benar
+                   </span>`
+                : ''
+            }
+          </div>
+        </div>
+
+        <!-- Kartu Kode Holland Utama -->
+        <div class="bg-gradient-to-br from-sky-50 to-amber-50 rounded-2xl p-5 border-2 border-slate-800 text-center">
+          <span class="inline-block px-3 py-1 rounded-full bg-amber-300 border border-slate-800 text-xs font-bold uppercase tracking-wider text-slate-900 mb-3">
+            3 Kode Teratas Kepribadian Holland (Holland Code)
+          </span>
+          <div class="flex items-center justify-center gap-2 sm:gap-3 my-1">
+            ${topThree
+              .map(
+                (t, idx) => `
+              <div class="flex flex-col items-center">
+                <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl ${badgeColors[idx]} border-2 border-slate-800 flex items-center justify-center font-display font-bold text-3xl sm:text-4xl text-slate-900 shadow">
+                  ${t.code}
+                </div>
+                <span class="text-[11px] font-bold text-slate-700 mt-1">${t.name.split(' ')[0]}</span>
+              </div>
+            `
+              )
+              .join('<span class="font-display font-bold text-2xl text-slate-400 -mt-4">-</span>')}
+          </div>
+          <p class="text-sm sm:text-base font-bold text-teal-800 mt-3">
+            Tipe Dominan Utama: ${primaryType.name} (${hollandCode})
+          </p>
+          <p class="text-xs sm:text-sm text-slate-700 max-w-2xl mx-auto mt-2 leading-relaxed">
+            ${primaryType.description} Kombinasi <strong>${topThree.map((t) => t.name.split(' ')[0]).join(', ')}</strong> menunjukkan bahwa <strong>${gameState.studentName || 'Kamu'}</strong> akan berkembang optimal di lingkungan belajar dan kerja yang memadukan karakter ${topThree.map((t) => t.code).join(', ')}.
+          </p>
+        </div>
+
+        <!-- Grafik Batang Skor Keenam Tipe RIASEC -->
+        <div class="bg-white rounded-2xl p-4 sm:p-5 border-2 border-slate-200 space-y-3">
+          <h3 class="font-display font-bold text-base sm:text-lg text-slate-800">
+            📊 Grafik Profil Kecenderungan Minat 6 Pulau RIASEC
+          </h3>
+          <div class="space-y-2.5">
+            ${sortedTypes
+              .map((item) => {
+                const score = gameState.scores[item.code] || 0;
+                return `
+                <div>
+                  <div class="flex justify-between text-xs sm:text-sm font-bold text-slate-700 mb-1">
+                    <span>[${item.code}] ${item.name}</span>
+                    <span>${score}%</span>
+                  </div>
+                  <div class="w-full h-4 bg-slate-100 rounded-full border border-slate-300 overflow-hidden">
+                    <div class="h-full ${item.barColor} transition-all duration-700 rounded-full" style="width: ${Math.max(score, 6)}%"></div>
+                  </div>
+                </div>
+              `;
+              })
+              .join('')}
+          </div>
+        </div>
+
+        <!-- Ringkasan Kepribadian & Rekomendasi Jurusan/Profesi -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-sky-50 rounded-2xl p-4 border-2 border-sky-200">
+            <h4 class="font-display font-bold text-slate-800 text-base mb-2 flex items-center gap-2">
+              <span>🎓</span> Rekomendasi Jurusan Kuliah / Bidang Studi
+            </h4>
+            <ul class="space-y-1.5 text-xs sm:text-sm text-slate-700">
+              ${recommendedMajors.map((m) => `<li class="flex items-center gap-2"><span class="text-sky-600 font-bold">✓</span> ${m}</li>`).join('')}
+            </ul>
+          </div>
+
+          <div class="bg-emerald-50 rounded-2xl p-4 border-2 border-emerald-200">
+            <h4 class="font-display font-bold text-slate-800 text-base mb-2 flex items-center gap-2">
+              <span>💼</span> Contoh Profesi Karier yang Relevan
+            </h4>
+            <ul class="space-y-1.5 text-xs sm:text-sm text-slate-700">
+              ${recommendedCareers.map((c) => `<li class="flex items-center gap-2"><span class="text-emerald-600 font-bold">★</span> ${c}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+
+      openModal('result-modal');
+    }
+
+    window.closeResultModal = function () {
+      AudioFX.click();
+      closeModal('result-modal');
+    };
+
+    window.printCareerReport = function () {
+      AudioFX.click();
+      window.print();
+    };
+
+    // =========================================================================
+    // 11. KONTROL INTERAKSI KLIK PULAU & TOMBOL NAVIGASI
+    // =========================================================================
+    function updateControlBar() {
+      const statusInstruction = document.getElementById('status-instruction');
+      const btnNextAction = document.getElementById('btn-next-action');
+      const captainTitle = gameState.studentName ? `Kapten ${gameState.studentName}` : 'Kapten';
+
+      if (!statusInstruction || !btnNextAction) return;
+
+      if (gameState.currentStep === 0) {
+        statusInstruction.textContent = `${captainTitle}, kapal bersandar di Pulau START! Klik tombol "Mulai Berlayar ke Pulau R" atau klik Pulau START/R di peta.`;
+        btnNextAction.textContent = '⛵ Mulai Berlayar ke Pulau R';
+        btnNextAction.classList.add('pulse-cta');
+      } else if (gameState.currentStep >= 1 && gameState.currentStep <= 6) {
+        const curData = RIASEC_DATA[gameState.currentStep - 1];
+        statusInstruction.textContent = `${captainTitle} berada di Pulau ${curData.code} (${curData.name}). Selesaikan tantangan pulau ini!`;
+        btnNextAction.textContent = `📋 Buka Kartu Pulau ${curData.code}`;
+        btnNextAction.classList.remove('pulse-cta');
+      } else if (gameState.currentStep === 7) {
+        statusInstruction.textContent = `Selamat ${captainTitle}! Kamu tiba di Pulau FINISH. Klik "Lihat Hasil Profil" untuk sertifikatmu.`;
+        btnNextAction.textContent = '🏆 Lihat Hasil Profil';
+        btnNextAction.classList.add('pulse-cta');
+      }
+    }
+
+    window.handleIslandClick = function (step) {
+      if (gameState.isSailing) return;
+      const statusInstruction = document.getElementById('status-instruction');
+
+      // Jika belum mengisi profil, arahkan ke modal profil dulu
+      if (!gameState.studentName) {
+        openModal('welcome-modal');
+        return;
+      }
+
+      // Klik Pulau START -> langsung berangkat menuju Pulau R
+      if (step === 0) {
+        if (gameState.currentStep === 0) {
+          window.startVoyageFromStart();
+        } else {
+          AudioFX.click();
+          if (statusInstruction) {
+            statusInstruction.textContent = '⚓ Kamu sudah berangkat dari Pulau START! Lanjutkan penjelajahan pulau RIASEC.';
+          }
+        }
+        return;
+      }
+
+      // Klik Pulau FINISH
+      if (step === 7) {
+        if (gameState.completedSteps.has(6) || gameState.completedSteps.has(7)) {
+          sailShipTo(7, () => showFinalResultModal());
+        } else {
+          AudioFX.wrong();
+          if (statusInstruction) {
+            statusInstruction.textContent =
+              '🔒 Pulau FINISH masih terkunci! Jelajahi dan selesaikan semua pulau R - I - A - S - E - C terlebih dahulu.';
+          }
+        }
+        return;
+      }
+
+      // Klik Pulau RIASEC (1..6)
+      const maxUnlocked = Math.max(...Array.from(gameState.completedSteps)) + 1;
+      if (step <= maxUnlocked) {
+        sailShipTo(step, () => {
+          updateControlBar();
+          openIslandModal(step);
+        });
+      } else {
+        AudioFX.wrong();
+        const neededCode = RIASEC_DATA[maxUnlocked - 1].code;
+        if (statusInstruction) {
+          statusInstruction.textContent = `🔒 Selesaikan Pulau ${neededCode} terlebih dahulu sebelum berlayar ke Pulau ${RIASEC_DATA[step - 1].code}!`;
+        }
+      }
+    };
+
+    window.resetGame = function () {
+      AudioFX.click();
+      gameState.currentStep = 0;
+      gameState.completedSteps = new Set([0]);
+      gameState.scores = { R: 0, I: 0, A: 0, S: 0, E: 0, C: 0 };
+      gameState.quizCorrectCount = 0;
+      gameState.isSailing = false;
+
+      const playerShip = document.getElementById('player-ship');
+      if (playerShip) {
+        playerShip.setAttribute('transform', `translate(${SHIP_WAYPOINTS[0].x}, ${SHIP_WAYPOINTS[0].y})`);
+      }
+
+      const svgStartCta = document.getElementById('svg-start-cta');
+      if (svgStartCta) svgStartCta.classList.add('pulse-cta');
+
+      renderProgressTracker();
+      updateControlBar();
+
+      closeModal('island-modal');
+      closeModal('result-modal');
+      closeModal('start-brief-modal');
+      openModal('welcome-modal');
+    };
+
+    // =========================================================================
+    // 12. ANIMASI KONFETI PERAYAAN FINISH
+    // =========================================================================
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const colors = ['#facc15', '#f43f5e', '#38bdf8', '#4ade80', '#fb923c', '#a855f7'];
+      const particles = Array.from({ length: 110 }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height - canvas.height,
+        w: Math.random() * 10 + 6,
+        h: Math.random() * 6 + 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vy: Math.random() * 3 + 2,
+        vx: Math.random() * 2 - 1,
+        rot: Math.random() * 360
+      }));
+
+      let frames = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p) => {
+          p.y += p.vy;
+          p.x += p.vx;
+          p.rot += 4;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate((p.rot * Math.PI) / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+          ctx.restore();
+        });
+        frames++;
+        if (frames < 180) {
+          requestAnimationFrame(draw);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      requestAnimationFrame(draw);
+    }
+
+    // =========================================================================
+    // 13. INISIALISASI EVENT LISTENER DI DALAM DOMContentLoaded
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      // Izinkan menekan Enter pada input profil untuk lanjut ke Pulau START
+      const nameInput = document.getElementById('input-student-name');
+      const classInput = document.getElementById('input-student-class');
+      [nameInput, classInput].forEach((inp) => {
+        if (inp) {
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              window.submitProfileAndDockStart();
+            }
+          });
+        }
+      });
+
+      // Toggle Suara
+      const btnSound = document.getElementById('btn-sound');
+      if (btnSound) {
+        btnSound.addEventListener('click', () => {
+          gameState.soundEnabled = !gameState.soundEnabled;
+          btnSound.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+          if (gameState.soundEnabled) AudioFX.click();
+        });
+      }
+
+      // Tombol Reset / Ganti Siswa di Header
+      const btnHome = document.getElementById('btn-home');
+      if (btnHome) {
+        btnHome.addEventListener('click', window.resetGame);
+      }
+
+      renderProgressTracker();
+      updateControlBar();
+    });
+  </script>
+</body>
+</html>
